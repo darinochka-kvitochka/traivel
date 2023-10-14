@@ -4,6 +4,8 @@ gifrom flask import Flask, render_template, request
 from sentence_transformers import SentenceTransformer, util
 import numpy as np
 import torch
+from numpy import dot, transpose, argmax
+from numpy.linalg import norm
 
 app = Flask(__name__, static_folder='static')
 
@@ -37,13 +39,18 @@ def search():
     embeddings = model.encode(activity_descriptions)
     query = request.form['query']
     queryEmbedding = model.encode(query)
-    cos_sim = []
+    
 
-    for embedding in embeddings:
-        cos_sim.append(util.pytorch_cos_sim(queryEmbedding, embedding)[0][0].item())
+    if any(x in query for x in ["Vienna", "Linz", "Salzburg"]): 
+      a = transpose(queryEmbedding)
+      b = transpose(embeddings)
+      cos_sim = dot(a, b)/(norm(a)*norm(b))
 
-    best_match_index = np.argmax(cos_sim)
-    best_match_description = activity_descriptions[best_match_index]
+      indexMax = argmax(cos_sim)
+      best_match_description = activity_descriptions[indexMax]
+
+    else:  
+      best_match_description = "I can only offer my advice for Vienna, Salzburg or Linz. Please, specify one of those cities."
 
     return render_template('traiwell.html', query=query, best_match=best_match_description)
 
